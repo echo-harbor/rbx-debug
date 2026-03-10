@@ -1,6 +1,6 @@
 local debugger = {
   ["Loaded"] = false,
-  ["ExitCode"] = -1,
+  ["ExitCode"] = 1,
   ["ExitCause"] = "",
 }
 
