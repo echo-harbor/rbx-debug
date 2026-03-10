@@ -12,7 +12,7 @@ if not runService:IsClient() then
   debugger.ExitCause = "source.lua must be run from client! if you wish to run this server side, use source-server.lua instead."
 end
 
-local dependencies = loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/rbx-debug/refs/heads/main/dependencies.lua"))
+local dependencies = loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/rbx-debug/refs/heads/main/dependencies.lua"))()
 
 local universe = game.GameId
 
