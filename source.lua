@@ -44,3 +44,9 @@ debugger = {
 }
 
 print("[rbx-debug]: debugger has successfully loaded into the environment")
+
+debugger.func = {
+  battlemode = function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/battle-mode/refs/heads/main/source.lua"))()
+  end,
+}
