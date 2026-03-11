@@ -54,3 +54,5 @@ debugger.func = {
     print("data written to workspace > doors > Data.json")
   end,
 }
+
+return debugger
