@@ -1,58 +1,91 @@
-local debugger = {
-  ["Loaded"] = false,
-  ["ExitCode"] = -999,
-  ["ExitCause"] = "",
-}
+local dependencies = loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/rbx-debug/refs/heads/main/dependencies.lua"))()
 
-pcall(function()
-  local runService = game:GetService("RunService")
-
-  if not runService:IsClient() then
-    warn("[rbx-debug]: source.lua must be run from client! if you wish to run this server side, use source-server.lua instead.")
-    debugger.ExitCode = 3
-    debugger.ExitCause = "source.lua must be run from client! if you wish to run this server side, use source-server.lua instead."
-  end
-
-  local dependencies = loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/rbx-debug/refs/heads/main/dependencies.lua"))()
-
-  local universe = game.GameId
-
-  if not table.find(dependencies.SupportedUniverses, universe) then
-    debugger.ExitCode = 2
-    debugger.ExitCause = "universe ".. tostring(universe) .. " is not a supported universe"
-  end
-end)
-
-if debugger.ExitCode == -999 then
-  debugger.ExitCode = 0
+if dependencies == nil then
+  warn("[RUNTIME]: failed to load dependencies")
+  return
 end
 
-if debugger.ExitCode ~= 0 then
-  if debugger.ExitCause == "" then
-    warn("[rbx-debug]: debugger has exited with error code ".. tostring(debugger.ExitCode) .. " with no provided reason")
-  else
-    warn("[rbx-debug]: debugger has exited with error code ".. tostring(debugger.ExitCode))
-    warn("[rbx-debug]:", debugger.ExitCause)
-  end
-  return debugger
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local httpService = game:GetService("HttpService")
+local runService = game:GetService("RunService")
+local players = game:GetService("Players")
+
+local currentVersion = "1.0"
+
+if not runService:IsClient() then
+  warn("[RUNTIME]: cannot require this module from server-side")
+  return
 end
 
-debugger = {
-  ["Loaded"] = true,
-  ["ExitCode"] = nil,
-  ["ExitCause"] = nil,
-}
+if dependencies.LatestVersion ~= currentVersion then
+  warn("[RUNTIME]: using outdated module, you can get the newer version using the loadstring")
+end
 
-print("[rbx-debug]: debugger has successfully loaded into the environment")
+if not table.find(dependencies.SupportedUniverses, game.GameId) then
+  warn("[RUNTIME]: universe ".. tostring(universe) .. " is not a supported universe")
+end
 
-debugger.func = {
+local player = players.LocalPlayer
+player:WaitForChild("PlayerGui"):WaitForChild("MainUI"):WaitForChild("Initiator")
+
+local mainUI = player.PlayerGui.MainUI
+local client
+
+for i = 1, 10000000 do
+  task.wait(.01)
+  if mainUI.Initiator:FindFirstChildOfClass("ModuleScript") then
+    client = require(mainUI.Initiator:FindFirstChildOfClass("ModuleScript"))
+    print("loaded client!")
+    break
+  end
+end
+
+if client == nil then
+  warn("couldn't load client")
+  return
+end
+
+local achievements = require(replicatedStorage.ModulesShared.Achievements)
+local replica = require(replicatedStorage.ReplicaDataModule)
+local remotes = replicatedStorage.RemotesFolder
+
+print("[RUNTIME]: successfully loaded into the environment")
+
+doors = {
   battlemode = function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/battle-mode/refs/heads/main/source.lua"))()
   end,
-  getmydata = function()
-    writefile("doors\\Data.json", game:GetService("HttpService"):JSONEncode(require(game.ReplicatedStorage.ReplicaDataModule).data))
+  fetchdata = function(player)
+    local target = typeof(player) == "string" and game.Players:FindFirstChild(player)
+    if target == nil then
+      if player == nil then
+        player = game.Players.LocalPlayer
+      end
+      target = player
+    end
+    if replica.players[target] == nil then
+      warn("Unexpected error occured, replica of ".. target .." is nil")
+      return false
+    end
+    local filename = "fetched-data-".. player.Name ..".json"
+    writefile("doors\\".. filename, replica.players[target])
     print("data written to workspace > doors > Data.json")
   end,
-}
+  fetchshop = function()
+    local shop = game.ReplicatedStorage.RemotesFolder.RequestShop:InvokeServer()
+    if shop == nil then
+      warn("Unexpected error occured, could not get a response from server")
+      return false
+    end
+    shop = game:GetService("HttpService"):JSONEncode(shop)
+    setclipboard(shop)
+    local date = os.date("!%Y-%m-%d", os.time() - 14400)
+    local filename = "fetched-shop-".. date ..".json"
+    print("shop copied to clipboard and written to executor workspace/doors/".. filename)
+    return shop
+  end,
 
-return debugger
+  revampclient = function()
+
+  end,
+}
