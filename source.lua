@@ -6,6 +6,7 @@ if dependencies == nil then
 end
 
 local replicatedStorage = game:GetService("ReplicatedStorage")
+local teleportService = game:GetService("TeleportService")
 local httpService = game:GetService("HttpService")
 local runService = game:GetService("RunService")
 local players = game:GetService("Players")
@@ -51,7 +52,27 @@ local remotes = replicatedStorage.RemotesFolder
 
 print("[RUNTIME]: successfully loaded into the environment")
 
+local function toJSON(table)
+  return httpService:JSONEncode(table)
+end
+
 doors = {
+  restart = function()
+    local char = player.Character
+    local scripts = {}
+    for _, s in ipairs(player.PlayerScripts:GetChildren()) do
+      if s:IsA("LocalScript") then
+        s.Disabled = true
+        scripts[s.Name] = s
+      end
+    end
+
+    repeat task.wait(.5) player.Character:PivotTo(CFrame.new(0, -49998, 0)) until char.Parent == nil
+
+    for _, s in ipairs(scripts) do
+      script.Disabled = false
+    end
+  end, 
   battlemode = function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/echo-harbor/battle-mode/refs/heads/main/source.lua"))()
   end,
@@ -77,12 +98,27 @@ doors = {
       warn("Unexpected error occured, could not get a response from server")
       return false
     end
-    shop = game:GetService("HttpService"):JSONEncode(shop)
-    setclipboard(shop)
+    setclipboard(toJSON(shop))
     local date = os.date("!%Y-%m-%d", os.time() - 14400)
     local filename = "fetched-shop-".. date ..".json"
     print("shop copied to clipboard and written to executor workspace/doors/".. filename)
     return shop
+  end,
+  fetchtpdata = function()
+    local tpdata = teleportService:GetLocalPlayerTeleportData()
+
+    if tpdata == nil then
+      warn("no teleport data")
+      return {}
+    end
+    setclipboard(toJSON(tpdata))
+    print("teleport data copied to clipboard")
+    return tpdata
+  end,
+  unhideachievements = function()
+    for _, achievement in pairs(achievements) do
+	    achievement.ShowHidden = {NeedAll = false, Achievements = {"Join"}}
+    end
   end,
 
   revampclient = function()
